@@ -1,0 +1,120 @@
+### FlappyBird改良02---相关音效的加入以及开始键的设定
+
+### 添加音效
+
+#### 添加背景音乐
+
+1. 为GameControl添加AudioSource 并为 AudioSource添加一个AudioClip
+
+   ![GameController-AudioSource](GameController-AudioSource.PNG)
+
+2. 代码增改
+
+   声明一个变量AudioSource
+
+   ```csharp
+   public AudioSource audioplayer;//定义为Public方便从外部进行音乐播放 
+   ```
+
+    在OnStart中的初始化组件
+
+   ```csharp
+   void OnStart(){
+     audioplayer = GetComponent<AudioSource>();
+   }
+   ```
+#### 添加得分音效与死亡音效
+
+1. 在GameControl 代码中声明多个public AudioClip
+
+   ```csharp
+   public AudioClip DeadAudio;
+   public AudioClip ScoreAudio;
+   ```
+
+
+
+2. 在相应位置调用``` AudioSource.PlayOneShot(AudioClip)```即可达到不影响背景音乐的音效播放。
+
+   ```csharp
+   audioplayer.PlayOneShot(DeadAudio);
+   audioplayer.PlayOneShot(ScoreAudio);
+   ```
+
+### 开始按钮设定
+
+#### 设计目标
+
+1. 开始按钮未点击前，小鸟能够一直飞并不碰到障碍物
+2. 开始按钮点击后，小鸟开始受重力印象，并开始生成障碍物
+
+#### 设计要点
+
+1. 利用Rigidbody的属性``` BodyType``` -- ```Kinematic```或者 ``` Dynamic``` 来调整是否受重力影响
+
+2. 在GameControl中加入一个gameStart 的布尔属性
+
+   当```gameStart == false``` 时
+
+   - 小鸟一直播放煽动翅膀的动作 [在BirdController中设定]
+   - 并且不受重力影响 [预设BodyType为Kinematic,在BirdController中设定]
+   - 不生成障碍物  [在ColumnSpwan中设定]
+
+   当```gameStart == true``` 时
+
+   - 小鸟受重力影响 [在BirdController中设定]
+   - 生成障碍物 [在ColumnSpwan中设定]
+
+#### UI控件添加
+
+1. 右键添加一个UI-Button
+
+2. 做以下设定修改
+
+   ![Button_Text](Button_Text.PNG)
+
+   ![buttonSET](buttonSET.PNG)
+
+#### 相关代码改动
+
+1. 在GameControl中改动
+
+   ```csharp
+   public Button StartButton;
+   void startBtnClicked(){
+   		gameStart = true;
+   		StartButton.gameObject.SetActive (false);
+   }
+   void OnStart(){
+     ……
+     StartButton.onClick.AddListener (startBtnClicked);//添加点击事件监听
+     ……
+   }
+   ```
+
+2. 在ColumnSpwan中的改动
+   ```csharp
+   void OnUpdate(){
+     if(GameControl.instance.gameStart == false){
+       return;
+     }
+       ……
+       ……
+   }
+   ```
+
+3. 在BirdController中的改动
+   ```csharp
+   void  OnUpdate(){
+     if (GameControl.instance.gameStart == false) {
+       anim.SetTrigger ("Flap");
+     }else if (isDead == false) {
+       rb2d.bodyType = RigidbodyType2D.Dynamic;
+   	……
+     }
+   }
+   ```
+
+###  这样，音效与开始键就设定成功了！
+
+下一篇：技能果实的设定

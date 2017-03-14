@@ -1,0 +1,127 @@
+### FlappyBird改良01---柱子随机间隙
+
+> 在Unity3d的教程中，跟着教程，我们最终能够做出一个简单的FlappyBird DEMO. 
+>
+> 在这个Demo中，柱子上下间隙是固定的。
+>
+> 作为一个想要变得有意思的游戏，让柱子的上下间隙变得随机，可以显著提高游戏的难度。
+
+#### 1. 回顾原先的Column及ColumnSpwan代码
+
+##### Column的构成与图形：
+
+![Column_Hierarchy](E:\MyUnityFiles\ProjectSummary\FlappyBird_sum\Column_Hierarchy.PNG)
+
+![Column](E:\MyUnityFiles\ProjectSummary\FlappyBird_sum\Column.PNG)
+
+总结一下，
+
+- Column 由两个子物体组成，UpColumn与DownColumn
+- 中间的通过区域用碰撞器填充，来检测小鸟是否通过
+
+##### Column的组件组成:
+
+- BoxCollider2d     ---> 碰撞检测器，Bird是否通过中间的间隙 【isTrigger=true】
+- Script - Scrollling  --> 使柱子随着地图以相同速度移动
+- Script - Column   --> 实现柱子的碰撞机制
+
+![ColumnComponents](E:\MyUnityFiles\ProjectSummary\FlappyBird_sum\ColumnComponents.PNG)
+
+##### ColumnSpwan代码
+
+```csharp
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class ColumnSpwan : MonoBehaviour {
+
+	public GameObject columnPrefab;
+	public int colnums = 5;
+	public float min_ypos =-1f; //生成柱子的postion 最小Y坐标
+	public float max_ypos = 3f; //生成柱子的postion 最大Y坐标
+	public float minTriggerYsize =2.8f; //中间间隙的最小值
+	public float maxTriggerYsize =5.2f; //中间间隙的最大值
+	public static float spwanRate = 4f; //生成速率，几秒生成一个柱子在指定的SpwanXpos
+
+	private GameObject[] columns;
+	private Vector2 col_pool_pos = new Vector2 (-15, -25);
+	private float ColumnHalfHeight = 5.17f; //半根柱子的高度，方便计算应该的pos
+	private float spwanXpos = 10f;
+	private float timeSinceLastSpwan = 0f;
+	private int currentCol = 0; //现在使用哪根柱子部署在小鸟的前方
+
+	// Use this for initialization
+
+	void Start () {
+		columns = new GameObject[colnums]; //柱子Prefab实例化
+		for (int i = 0; i < colnums; i++) {
+			columns[i] = (GameObject)Instantiate(columnPrefab, col_pool_pos, Quaternion.identity);
+		}
+	}
+	
+	// Update is called once per frame
+	void Update () {
+		if (GameControl.instance.gameStart == false) {
+			return;
+		}
+		timeSinceLastSpwan += Time.deltaTime;
+		if (GameControl.instance.gameOver == false && timeSinceLastSpwan >= spwanRate) {
+			timeSinceLastSpwan = 0f;
+			//SetRandomGap ();
+			SetRandomPos ();
+			currentCol = (currentCol+1)%colnums;
+		}
+	}
+	void SetRandomPos(){ //设置柱子Y方向上的随机位置
+		float spwanYpos = Random.Range (min_ypos, max_ypos);
+		columns [currentCol].transform.position = new Vector2 (spwanXpos, spwanYpos);
+		GameObject Down = columns [currentCol].transform.Find ("DownColumn").gameObject;
+		GameObject Up = columns [currentCol].transform.Find ("UpColumn").gameObject;
+		Down.SetActive (true);
+		Up.SetActive (true);
+      //当柱子超出镜头高度或者没入草丛，设置不可见
+		if (Up.transform.position.y> 10.5f) {
+			Up.SetActive (false);
+		}
+		if (Down.transform.position.y < -7.35f) {
+			Down.SetActive (false);
+		}
+	}
+}
+```
+
+
+
+#### 2. 改动Collider的Size
+
+   为了实现随机间隙的目的，我们只能从控制代码实现。
+
+```csharp
+void SetRandomGap(){//设置随机的间隙
+   // 生成间隙的随机高度数据
+	float triggerYsize = Random.Range (minTriggerYsize, maxTriggerYsize);
+  // 将随机的高度数据部署到Collider上
+	columns [currentCol].GetComponent<BoxCollider2D> ().size= new Vector2(1,triggerYsize);
+}
+```
+#### 3. 改动UpColumn和DownColumn的position
+
+```csharp
+void SetRandomGap(){//设置随机的间隙
+	// 生成间隙的随机高度数据
+	float triggerYsize = Random.Range (minTriggerYsize, maxTriggerYsize);
+  // 将随机的高度数据部署到Collider上
+	columns [currentCol].GetComponent<BoxCollider2D> ().size= new Vector2(1,triggerYsize);
+   // 根据数据计算应该的position
+	columns [currentCol].transform.Find ("DownColumn").gameObject.transform.localPosition = new Vector2 (0f, -(triggerYsize / 2 + ColumnHalfHeight));
+	columns [currentCol].transform.Find ("UpColumn").gameObject.transform.localPosition = new Vector2 (0f, (triggerYsize / 2 + ColumnHalfHeight));
+}
+```
+
+
+
+### 这样就完成了随机间隙的柱子生成！
+
+下一篇：FlappyBird改良02---相关音效的加入。
+
